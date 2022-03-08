@@ -29,7 +29,9 @@ module main(
 	output hsync1,
 	output vsync1,
 	output reg [9:0] h_counter,
-	output reg [9:0] v_counter
+	output reg [9:0] v_counter,
+	output reg [3:0] an,
+	output reg [6:0] seg
     );
 	 
 	parameter BACKGROUND = 8'b00000000;
@@ -84,12 +86,26 @@ module main(
 	end
 	
 	always @(posedge clk) begin
-		if (count_2hz == 6249999) begin
+		if (count_2hz == 3124999) begin//6249999) begin
 			count_2hz <= 0;
 			clk_2hz <= ~clk_2hz;
 		end
 		else begin
 			count_2hz <= count_2hz + 1;
+		end
+	end
+	
+	
+	reg [31:0] count_fast;
+	reg clk_fast;
+	
+	always @(posedge clk) begin
+		if (count_fast == 249999) begin
+			count_fast <= 0;
+			clk_fast <= ~clk_fast;
+		end
+		else begin
+			count_fast <= count_fast + 1;
 		end
 	end
 	
@@ -182,7 +198,7 @@ module main(
 		end
 	end
 	
-	wire score;
+	wire [9:0] score;
 	
 	////////////////////////////////////////////
 	
@@ -253,7 +269,70 @@ module main(
 		.is_food(is_food)
 	);
 	
+	///////////////////////////////////////////////
+	// seven seg
+	//////////////////////////////////////////////
 	
 	
+	wire [6:0] seg_fourth_dig;
+	wire [6:0] seg_third_dig;
+	wire [6:0] seg_second_dig;
+	wire [6:0] seg_first_dig;
+	
+	wire [3:0] first_dig;
+	wire [3:0] second_dig;
+	wire [3:0] third_dig;
+	wire [3:0] fourth_dig;	
+	
+	assign first_dig = score % 10;
+	assign second_dig = (score / 10) % 10;
+	assign third_dig = (score / 100) % 10;
+	assign fourth_dig = (score / 1000) % 10;
+	
+	display firstdig(
+		.number(first_dig),
+		.seg(seg_first_dig)
+	);
+	
+	display seconddig(
+		.number(second_dig),
+		.seg(seg_second_dig)
+	);
+	
+	display thirddig(
+		.number(third_dig),
+		.seg(seg_third_dig)
+	);
+	
+	display fourthdig(
+		.number(fourth_dig),
+		.seg(seg_fourth_dig)
+	);
+	
+	
+	reg [1:0] an_count = 0;
+	
+	always @(posedge clk_fast) begin
+		if (an_count ==0) begin
+			an <= 4'b0111;
+			an_count <= an_count + 1;
+			seg <= seg_fourth_dig;
+		end
+		else if (an_count == 1) begin
+			an <= 4'b1011;
+			an_count <= an_count + 1;
+			seg <= seg_third_dig;
+		end
+		else if (an_count == 2) begin
+			an <= 4'b1101;
+			an_count <= an_count + 1;
+			seg <= seg_second_dig;
+		end
+		else begin
+			an <= 4'b1110;
+			an_count <= an_count + 1;
+			seg <= seg_first_dig;
+		end
+	end
 
 endmodule

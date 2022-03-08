@@ -24,7 +24,7 @@ module gamelogic(
 	 input [1:0] direction,
 	 input [9:0] index,
 	 input rst,
-	 output [9:0] score,
+	 output reg [9:0] score,
 	 output reg won,
 	 output reg lost,
 	 output is_snake,
@@ -42,9 +42,14 @@ reg [9:0] snake_body [29:0];
 reg [9:0] head;
 reg [9:0] length;
 reg [9:0] food;
-reg [9:0] random_num;
+reg [9:0] random_num_1;
 
-assign score = length -4;
+/*
+always @(master_clk)
+begin
+	random_num_1 <= (random_num_1 + 1) % 900;
+end
+*/
 
 reg [9:0] next_head;
 
@@ -53,15 +58,16 @@ initial begin
 	for (i=0; i<30; i=i+1) begin
 		snake_body[i] = 10'd1000;
 	end
-	food = 331;
-	snake_body[0] = 10'd453;
-	snake_body[1] = 10'd452;
-	snake_body[2] = 10'd451;
-	snake_body[3] = 10'd450;
+	food <= 88;
+	snake_body[0] = 10'd3;
+	snake_body[1] = 10'd2;
+	snake_body[2] = 10'd1;
+	snake_body[3] = 10'd0;
 	
 	length <= 9'd4;
 	won <= 0;
 	lost <= 0;
+	score <= 0;
 end
 
 assign is_food = (food == index);
@@ -77,10 +83,9 @@ assign is_snake = |check_snake;
 
 assign game_over = (|check_snake[29:1] & check_snake[0]);
 
-// 0: LEFT
-// 1: RIGHT
-// 2: UP
-// 3: DOWN
+//   2
+// 0   1
+//   3
 
 reg lose;
 
@@ -89,28 +94,28 @@ always @(posedge game_speed_clk) begin
 		2'd0:
 		begin
 			if ((snake_body[0] % 30) == 0)
-				lose <= 0;
+				next_head <= snake_body[0] + 10'd29;
 			else
 				next_head <= snake_body[0] - 10'd1;
 		end
 		2'd1:
 		begin
 			if ((snake_body[0] % 30) == 29)
-				lose <= 0;
+				next_head <= snake_body[0] - 10'd29;
 			else
 				next_head <= snake_body[0] + 10'd1;
 		end
 		2'd2:
 		begin
 			if ((snake_body[0] / 30) == 0)
-				lose <= 0;
+				next_head <= snake_body[0] + 10'd870;
 			else
 				next_head <= snake_body[0] - 10'd30;
 		end
 		2'd3:
 		begin
 			if ((snake_body[0] / 30) == 29)
-				lose <= 0;
+				next_head <= snake_body[0] - 10'd870;
 			else
 				next_head <= snake_body[0] + 10'd30;
 		end
@@ -127,40 +132,49 @@ always @(posedge master_clk) begin
 		for (i=0; i<30; i=i+1) begin
 			snake_body[i] = 10'd1020;
 		end
-		food = 331;
-		snake_body[0] = 10'd453;
-		snake_body[1] = 10'd452;
-		snake_body[2] = 10'd451;
-		snake_body[3] = 10'd450;
+		food <= (food+3) * 1023 %900;
+		snake_body[0] = 10'd3;
+		snake_body[1] = 10'd2;
+		snake_body[2] = 10'd1;
+		snake_body[3] = 10'd0;
 		
 		length <= 9'd4;
+		//random_num =0;
 		won <= 0;
 		lost <= 0;
+		score <= 0;
 	end
+	if (game_over & ~rst) begin
+		lost <= 1;
+	end
+	if (game_speed_clk & ~lost) begin
 	
-	
-	if (game_speed_clk) begin
-		for (i=29; i!=0; i=i-1) begin
-			if (i<length)
-				snake_body[i] = snake_transition[i];
+		if ((direction == 2'd0 && (snake_body[0] % 30) == 0) || (direction == 2'd1 && (snake_body[0] % 30) == 29) || (direction == 2'd2 && (snake_body[0] / 30) == 0) || (direction == 2'd3 && (snake_body[0] / 30) == 29)) begin
+			lost <= 1;
 		end
-		snake_body[0] = next_head;
+			else begin
+			for (i=29; i!=0; i=i-1) begin
+				if (i<length)
+					snake_body[i] = snake_transition[i];
+			end
+			snake_body[0] = next_head;
+		end
 	end
-	if (~game_speed_clk & next_head != food) begin
+	if (~game_speed_clk & next_head != food & ~lost) begin
 		for (i=29; i!=0; i=i-1) begin
 			if (i<length)
 				snake_transition[i] = snake_body[i-1];
 		end
 	end
-	if (~game_speed_clk & next_head == food) begin
+	if (~game_speed_clk & next_head == food &~lost) begin
 		length <= length + 1;
-		food <= food * 1023 %900;
+		score <= score + 1;
+		food <= food * 1023 %900;//food * 1023 %900;
 		for (i=29; i!=0; i=i-1) begin
 			if (i<length)
 				snake_transition[i] = snake_body[i-1];
 		end
 	end
-	
 end
 
 
