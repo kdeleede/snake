@@ -44,6 +44,9 @@ reg [9:0] length;
 reg [9:0] food;
 reg [9:0] random_num_1;
 
+reg [4:0] rng1;
+reg [4:0] rng2;
+
 /*
 always @(master_clk)
 begin
@@ -68,6 +71,8 @@ initial begin
 	won <= 0;
 	lost <= 0;
 	score <= 0;
+	rng1 <= 1;
+	rng2 <= 3;
 end
 
 assign is_food = (food == index);
@@ -127,12 +132,13 @@ end
 reg [9:0] snake_transition [29:0];
 
 always @(posedge master_clk) begin
-
+	rng1 <= { rng1[3:0], rng1[4] ^ rng1[2]};
+	rng2 <= { rng2[3:0], rng2[4] ^ rng2[2]};
 	if (rst) begin
 		for (i=0; i<30; i=i+1) begin
 			snake_body[i] = 10'd1020;
 		end
-		food <= (food+3) * 1023 %900;
+		food <= {rng1,rng2}%900;//((food+3)*1023)%900;
 		snake_body[0] = 10'd3;
 		snake_body[1] = 10'd2;
 		snake_body[2] = 10'd1;
@@ -169,7 +175,7 @@ always @(posedge master_clk) begin
 	if (~game_speed_clk & next_head == food &~lost) begin
 		length <= length + 1;
 		score <= score + 1;
-		food <= food * 1023 %900;//food * 1023 %900;
+		food <= {rng1,rng2}%900;//food <= food * 1023 %900;
 		for (i=29; i!=0; i=i-1) begin
 			if (i<length)
 				snake_transition[i] = snake_body[i-1];

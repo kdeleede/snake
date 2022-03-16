@@ -31,7 +31,8 @@ module main(
 	output reg [9:0] h_counter,
 	output reg [9:0] v_counter,
 	output reg [3:0] an,
-	output reg [6:0] seg
+	output reg [6:0] seg,
+	output reg [1:0] direction
     );
 	 
 	parameter BACKGROUND = 8'b00000000;
@@ -165,7 +166,7 @@ module main(
 	
 	////////////////////////////////////////////
 	
-	reg [1:0] direction;
+	
 	reg [1:0] next_direction;
 	
 	initial begin
@@ -253,7 +254,6 @@ module main(
 	assign vsync1 = (v_counter < vpulse) ? 0:1;
 	
 	////////////////////////////////////////////////////////////
-
 
 	
 	gamelogic gamelogic(
